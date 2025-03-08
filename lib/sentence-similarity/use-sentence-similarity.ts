@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SentenceSimilarityResult, WorkerStatus } from './types';
 
 type UseSentenceSimilarityOptions = {
@@ -22,16 +22,16 @@ export function useSentenceSimilarity({
   const pipelineConfigRef = useRef(pipelineConfig);
   const workerRef = useRef<Worker | null>(null);
 
-  const search = useCallback((query: string) => {
+  const search = (query: string) => {
     if (!workerRef.current) {
-      return [];
+      return null;
     }
 
     workerRef.current.postMessage({
       status: WorkerStatus.UPDATE,
       query,
     });
-  }, []);
+  };
 
   useEffect(() => {
     workerRef.current = new Worker(
