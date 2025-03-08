@@ -11,8 +11,8 @@ self.onmessage = async (event: MessageEvent) => {
     const status = message.status as WorkerStatus;
 
     const pipe = await SentenceSimilarityPipeline.getInstance(
-      message.pipelineConfig.model,
-      message.pipelineConfig.options
+      message.pipelineConfig?.model,
+      message.pipelineConfig?.options
     );
 
     switch (status) {
@@ -45,7 +45,7 @@ self.onmessage = async (event: MessageEvent) => {
           pooling: 'mean',
           normalize: true,
         });
-        const queryEmbedding = queryTensor.tolist();
+        const queryEmbedding: number[] = queryTensor.tolist()[0];
         const similarities: SentenceSimilarityResult[] = embeddings.map(
           (embedding, index) => {
             const similarity = cos_sim(queryEmbedding, embedding);
@@ -54,7 +54,9 @@ self.onmessage = async (event: MessageEvent) => {
         );
         self.postMessage({
           status: WorkerStatus.COMPLETE,
-          similarities,
+          similarities: similarities.sort(
+            (a, b) => b.similarity - a.similarity
+          ),
         });
         break;
       }

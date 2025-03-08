@@ -3,9 +3,9 @@ import { SentenceSimilarityResult, WorkerStatus } from './types';
 
 type UseSentenceSimilarityOptions = {
   items: string[];
-  pipelineConfig: {
-    model: string;
-    options: Record<string, unknown>;
+  pipelineConfig?: {
+    modelId?: string;
+    options?: Record<string, unknown>;
   };
 };
 
@@ -16,7 +16,12 @@ export function useSentenceSimilarity({
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
-  const [data, setData] = useState<SentenceSimilarityResult[]>([]);
+  const [data, setData] = useState<SentenceSimilarityResult[]>(
+    items.map((_, index) => ({
+      index,
+      similarity: -1,
+    }))
+  );
 
   const itemsRef = useRef(items);
   const pipelineConfigRef = useRef(pipelineConfig);
