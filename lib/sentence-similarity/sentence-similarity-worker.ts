@@ -4,6 +4,7 @@ import { SentenceSimilarityResult, WorkerStatus } from './types';
 
 let initialized = false;
 let embeddings: number[][] | null = null;
+let items: string[] = [];
 
 self.onmessage = async (event: MessageEvent) => {
   try {
@@ -18,14 +19,19 @@ self.onmessage = async (event: MessageEvent) => {
     switch (status) {
       case WorkerStatus.INITIATE: {
         if (!initialized) {
+          items = message.items;
+
           const itemsTensor = await pipe(message.items, {
             pooling: 'mean',
             normalize: true,
           });
+
           embeddings = itemsTensor.tolist();
+
           self.postMessage({
             status: WorkerStatus.READY,
           });
+
           initialized = true;
         }
         break;
@@ -38,24 +44,51 @@ self.onmessage = async (event: MessageEvent) => {
           });
           throw new Error('Embeddings not initialized');
         }
+
         self.postMessage({
           status: WorkerStatus.PROGRESS,
         });
+
+        if (!message.query) {
+          self.postMessage({
+            status: WorkerStatus.COMPLETE,
+            similarities: items.map((item) => ({
+              item,
+              similarity: -1,
+            })),
+          });
+          return;
+        }
+
         const queryTensor = await pipe(message.query, {
           pooling: 'mean',
           normalize: true,
         });
+
         const queryEmbedding: number[] = queryTensor.tolist()[0];
+
         const similarities: SentenceSimilarityResult[] = embeddings.map(
           (embedding, index) => {
             const similarity = cos_sim(queryEmbedding, embedding);
-            return { index, similarity };
+            return { item: items[index] || '', similarity };
           }
         );
+
+        let sortedSimilarities = similarities.sort(
+          (a, b) => b.similarity - a.similarity
+        );
+
+        if (message.similarityThreshold) {
+          sortedSimilarities = sortedSimilarities.filter(
+            (similarity) => similarity.similarity >= message.similarityThreshold
+          );
+        }
+
         self.postMessage({
           status: WorkerStatus.COMPLETE,
-          similarities: similarities.sort(
-            (a, b) => b.similarity - a.similarity
+          similarities: sortedSimilarities.slice(
+            0,
+            message.limit || sortedSimilarities.length
           ),
         });
         break;

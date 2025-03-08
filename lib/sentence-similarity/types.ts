@@ -9,6 +9,6 @@ export enum WorkerStatus {
 }
 
 export type SentenceSimilarityResult = {
-  index: number;
+  item: string;
   similarity: number;
 };
