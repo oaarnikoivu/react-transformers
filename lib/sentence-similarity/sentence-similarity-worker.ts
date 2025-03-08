@@ -1,10 +1,13 @@
 import { cos_sim } from '@huggingface/transformers';
 import { SentenceSimilarityPipeline } from './sentence-similarity-pipeline';
 import { SentenceSimilarityResult, WorkerStatus } from './types';
+import { LRUCache } from '../utils';
 
 let initialized = false;
 let embeddings: number[][] | null = null;
 let items: string[] = [];
+
+const cache = new LRUCache<SentenceSimilarityResult[]>(1000);
 
 self.onmessage = async (event: MessageEvent) => {
   try {
@@ -49,13 +52,29 @@ self.onmessage = async (event: MessageEvent) => {
           status: WorkerStatus.PROGRESS,
         });
 
-        if (!message.query) {
+        if (
+          !message.query ||
+          message.query.trim().replaceAll(' ', '').length === 0
+        ) {
           self.postMessage({
             status: WorkerStatus.COMPLETE,
             similarities: items.map((item) => ({
               item,
               similarity: -1,
             })),
+          });
+          return;
+        }
+
+        const cacheKey = message.query
+          .trim()
+          .toLowerCase()
+          .replaceAll(' ', '_');
+
+        if (cache.get(cacheKey)) {
+          self.postMessage({
+            status: WorkerStatus.COMPLETE,
+            similarities: cache.get(cacheKey),
           });
           return;
         }
@@ -84,13 +103,18 @@ self.onmessage = async (event: MessageEvent) => {
           );
         }
 
+        const result = sortedSimilarities.slice(
+          0,
+          message.limit || sortedSimilarities.length
+        );
+
+        cache.set(cacheKey, result);
+
         self.postMessage({
           status: WorkerStatus.COMPLETE,
-          similarities: sortedSimilarities.slice(
-            0,
-            message.limit || sortedSimilarities.length
-          ),
+          similarities: result,
         });
+
         break;
       }
       default:
