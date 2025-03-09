@@ -12,6 +12,12 @@ export default defineConfig({
       include: ['lib/**/*'],
     }),
   ],
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      external: ['@huggingface/transformers'],
+    },
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'lib/index.ts'),
