@@ -1,9 +1,9 @@
 import { cos_sim } from '@huggingface/transformers';
 import { SentenceSimilarityPipeline } from './sentence-similarity-pipeline';
-import { SentenceSimilarityResult, WorkerStatus } from './types';
+import { SentenceSimilarityResult } from './types';
 import { LRUCache } from '../utils';
+import { WorkerStatus } from '../common';
 
-let initialized = false;
 let embeddings: number[][] | null = null;
 let items: string[] = [];
 
@@ -20,8 +20,8 @@ self.onmessage = async (event: MessageEvent) => {
     );
 
     switch (status) {
-      case WorkerStatus.INITIATE: {
-        if (!initialized) {
+      case WorkerStatus.UPDATE: {
+        if (!embeddings) {
           items = message.items;
 
           const itemsTensor = await pipe(message.items, {
@@ -30,22 +30,6 @@ self.onmessage = async (event: MessageEvent) => {
           });
 
           embeddings = itemsTensor.tolist();
-
-          self.postMessage({
-            status: WorkerStatus.READY,
-          });
-
-          initialized = true;
-        }
-        break;
-      }
-      case WorkerStatus.UPDATE: {
-        if (!embeddings) {
-          self.postMessage({
-            status: WorkerStatus.ERROR,
-            error: 'Embeddings not initialized',
-          });
-          throw new Error('Embeddings not initialized');
         }
 
         self.postMessage({

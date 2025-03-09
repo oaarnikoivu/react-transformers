@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { SentenceSimilarityResult, WorkerStatus } from './types';
+import { SentenceSimilarityResult } from './types';
+import { WorkerStatus } from '../common';
 
 type UseSentenceSimilarityOptions = {
   items: string[];
@@ -19,7 +20,6 @@ export function useSentenceSimilarity({
   limit,
   similarityThreshold,
 }: UseSentenceSimilarityOptions) {
-  const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
 
@@ -49,6 +49,8 @@ export function useSentenceSimilarity({
     debounceTimeout.current = setTimeout(() => {
       workerRef.current?.postMessage({
         status: WorkerStatus.UPDATE,
+        items: itemsRef.current,
+        pipelineConfig: pipelineConfigRef.current,
         query,
         limit,
         similarityThreshold,
@@ -64,20 +66,11 @@ export function useSentenceSimilarity({
       }
     );
 
-    workerRef.current.postMessage({
-      status: WorkerStatus.INITIATE,
-      items: itemsRef.current,
-      pipelineConfig: pipelineConfigRef.current,
-    });
-
     workerRef.current.onmessage = (event: MessageEvent) => {
       const message = event.data;
       const status = message.status as WorkerStatus;
 
       switch (status) {
-        case WorkerStatus.READY:
-          setIsReady(true);
-          break;
         case WorkerStatus.PROGRESS:
           setIsLoading(true);
           break;
@@ -99,7 +92,6 @@ export function useSentenceSimilarity({
   }, []);
 
   return {
-    isReady,
     isLoading,
     isError,
     data,
