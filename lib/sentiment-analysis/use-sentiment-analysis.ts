@@ -1,47 +1,47 @@
-import { SummarizationOutput } from '@huggingface/transformers';
+import { TextClassificationOutput } from '@huggingface/transformers';
 import { useEffect, useRef, useState } from 'react';
 import { WorkerStatus } from '../common';
 
-type UseSummarizationOptions = {
+type UseSentimentAnalysisOptions = {
   pipelineConfig?: {
     modelId?: string;
     options?: Record<string, unknown>;
   };
-  generatorConfig?: Record<string, unknown>;
+  classifierConfig?: Record<string, unknown>;
 };
 
-export function useSummarization({
+export function useSentimentAnalysis({
   pipelineConfig,
-  generatorConfig,
-}: UseSummarizationOptions) {
+  classifierConfig,
+}: UseSentimentAnalysisOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
   const [output, setOutput] = useState<
-    SummarizationOutput | SummarizationOutput[] | null
+    TextClassificationOutput | TextClassificationOutput[] | null
   >(null);
 
   const pipelineConfigRef = useRef(pipelineConfig);
-  const generatorConfigRef = useRef(generatorConfig);
+  const classifierConfigRef = useRef(classifierConfig);
   const workerRef = useRef<Worker | null>(null);
 
-  const summarize = (text: string | string[]) => {
+  const classify = (text: string | string[]) => {
     if (!workerRef.current) {
       return;
     }
 
     setIsLoading(true);
 
-    workerRef.current.postMessage({
+    workerRef.current?.postMessage({
       status: WorkerStatus.UPDATE,
       text,
       pipelineConfig: pipelineConfigRef.current,
-      generatorConfig: generatorConfigRef.current,
+      classifierConfig: classifierConfigRef.current,
     });
   };
 
   useEffect(() => {
     workerRef.current = new Worker(
-      new URL('./summarization-worker.ts', import.meta.url),
+      new URL('./sentiment-analysis-worker.ts', import.meta.url),
       {
         type: 'module',
       }
@@ -52,6 +52,9 @@ export function useSummarization({
       const status = message.status as WorkerStatus;
 
       switch (status) {
+        case WorkerStatus.PROGRESS:
+          setIsLoading(true);
+          break;
         case WorkerStatus.COMPLETE:
           setIsLoading(false);
           setOutput(message.output);
@@ -74,6 +77,6 @@ export function useSummarization({
     isLoading,
     isError,
     output,
-    summarize,
+    classify,
   };
 }

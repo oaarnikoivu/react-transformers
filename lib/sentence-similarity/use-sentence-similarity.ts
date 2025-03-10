@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { SentenceSimilarityResult } from './types';
 import { WorkerStatus } from '../common';
+import { SentenceSimilarityResult } from './types';
 
 type UseSentenceSimilarityOptions = {
   items: string[];
@@ -79,6 +79,7 @@ export function useSentenceSimilarity({
           setData(message.similarities);
           break;
         case WorkerStatus.ERROR:
+          setIsLoading(false);
           setIsError(message.error);
           break;
         default:
