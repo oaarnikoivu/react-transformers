@@ -1,19 +1,21 @@
 import { TextClassificationOutput } from '@huggingface/transformers';
 import { useEffect, useRef, useState } from 'react';
 import { WorkerStatus } from '../common';
+import { TextClassificationTask } from './types';
 
-type UseSentimentAnalysisOptions = {
+type UseTextClassificationOptions = {
   pipelineConfig?: {
+    task?: TextClassificationTask;
     modelId?: string;
     options?: Record<string, unknown>;
   };
   classifierConfig?: Record<string, unknown>;
 };
 
-export function useSentimentAnalysis({
+export function useTextClassification({
   pipelineConfig,
   classifierConfig,
-}: UseSentimentAnalysisOptions) {
+}: UseTextClassificationOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState<string | null>(null);
   const [output, setOutput] = useState<
@@ -41,7 +43,7 @@ export function useSentimentAnalysis({
 
   useEffect(() => {
     workerRef.current = new Worker(
-      new URL('./sentiment-analysis-worker.ts', import.meta.url),
+      new URL('./text-classification-worker.ts', import.meta.url),
       {
         type: 'module',
       }

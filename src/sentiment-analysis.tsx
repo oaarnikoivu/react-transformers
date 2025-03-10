@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { useSentimentAnalysis } from '../lib';
+import { useTextClassification } from '../lib';
 
 export function SentimentAnalysis() {
-  const { isLoading, output, classify } = useSentimentAnalysis({});
+  const { isLoading, output, classify } = useTextClassification({
+    pipelineConfig: {
+      task: 'sentiment-analysis',
+    },
+  });
 
   const [text, setText] = useState('');
 

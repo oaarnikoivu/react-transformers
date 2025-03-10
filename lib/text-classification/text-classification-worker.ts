@@ -1,12 +1,12 @@
 import { WorkerStatus } from '../common';
-import { SentimentAnalysisPipeline } from './sentiment-analysis-pipeline';
+import { TextClassificationPipeline } from './text-classification-pipeline';
 
 self.onmessage = async (event: MessageEvent) => {
   try {
     const message = event.data;
     const status = message.status as WorkerStatus;
 
-    const classifier = await SentimentAnalysisPipeline.getInstance(
+    const classifier = await TextClassificationPipeline.getInstance(
       message.pipelineConfig?.modelId,
       message.pipelineConfig?.options
     );
